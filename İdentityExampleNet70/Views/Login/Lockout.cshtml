@@ -1,0 +1,20 @@
+﻿
+@{
+    ViewData["Title"] = "Lockout";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account Locked</title>
+</head>
+<body>
+    <h2>Your account is locked.</h2>
+    <p>Your account has been locked due to multiple failed login attempts. Please try again later.</p>
+    @if (ViewBag.RemainingTime != null)
+    {
+        <p>Hesabınız kilitlendi. Kalan bekleme süresi @ViewBag.RemainingTime.TotalMinutes.ToString("0") dk. </p>
+    }
+</body>
+</html>

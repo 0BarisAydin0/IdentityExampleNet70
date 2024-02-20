@@ -1,0 +1,35 @@
+﻿@model AddRoleToUserViewModel
+@{
+    ViewData["Title"] = "AddRoleToUser";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+
+<h2>Add Role to User</h2>
+
+@if (ViewBag.Message != null)
+{
+    <div class="alert alert-success" role="alert">
+        @ViewBag.Message
+    </div>
+}
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger" role="alert">
+        @ViewBag.Error
+    </div>
+}
+
+<form asp-action="AddRoleToUser" method="post">
+    <div class="form-group">
+        <label for="userId">User ID:</label>
+        <input type="text" id="userId" asp-for="UserId" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label for="roleName">Role Name:</label>
+        <input type="text" id="roleName" asp-for="RoleName" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Rol Ekle</button>
+</form>

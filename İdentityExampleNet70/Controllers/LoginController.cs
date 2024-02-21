@@ -1,27 +1,41 @@
 ﻿using İdentityExampleNet70.Models.DTOs;
 using İdentityExampleNet70.Models.Entity;
+using İdentityExampleNet70.Models.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using IEmailSender = İdentityExampleNet70.Models.Services.IEmailSender;
 
 namespace İdentityExampleNet70.Controllers
 {
+    [AllowAnonymous]
     public class LoginController : Controller
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
-
-        public LoginController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager)
+        private readonly IEmailSender _emailSender;
+        public LoginController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IEmailSender emailSender)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _emailSender = emailSender;
+          
         }
 
-        
+
+
         public IActionResult Lockout()
         {
             return View();
-        } 
+        }
 
+
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
 
         [HttpGet]
         public IActionResult Login()
@@ -90,7 +104,10 @@ namespace İdentityExampleNet70.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = new AppUser { UserName = model.Email, Email = model.Email };
+                Random random = new Random();
+                int code;
+                code = random.Next(100000, 1000000);
+                var user = new AppUser { UserName = model.Email, Email = model.Email, ConfirmCode = code };
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
@@ -106,6 +123,23 @@ namespace İdentityExampleNet70.Controllers
         }
 
 
+
+
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+
+            // Diğer kimlik doğrulama şemalarından (external logins, cookie vb.) da çıkış yapabilirsiniz
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+
+            return RedirectToAction("Login", "Login");
+        }
+
+
+
+
+
+
         public IActionResult AddRoleToUser()
         {
             return View();
@@ -114,7 +148,7 @@ namespace İdentityExampleNet70.Controllers
 
 
 
-
+        /*
 
         [HttpPost]
         public async Task<IActionResult> AddRoleToUser(string userId, string roleName)
@@ -137,6 +171,38 @@ namespace İdentityExampleNet70.Controllers
                 // Rol atama başarısız, hata mesajlarını işleyin ve uygun bir hata mesajı gösterin
                 return BadRequest(result.Errors);
             }
+        }
+
+        */
+
+
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+                {
+                    // Kullanıcı yok veya e-posta onaylanmamışsa hata mesajı göster
+                    return View("ForgotPasswordConfirmation");
+                }
+
+                // Şifre sıfırlama bağlantısı oluştur ve kullanıcıya e-posta ile gönder
+                var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var callbackUrl = Url.Action("ResetPassword", "Account", new { userId = user.Id, code = code }, protocol: HttpContext.Request.Scheme);
+                await _emailSender.SendEmailAsync(model.Email, "Şifre Sıfırlama", $"Lütfen şifrenizi sıfırlamak için <a href='{callbackUrl}'>buraya tıklayınız</a>.");
+                return View("ForgotPasswordConfirmation");
+            }
+
+            return View(model);
         }
 
 
